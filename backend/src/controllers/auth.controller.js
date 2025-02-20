@@ -44,38 +44,43 @@ export const signup = async (req, res) => {
     }
 };
 
-export const login = async(req, res) => {
-   const {email,password } = req.body
-   try{
-    const user = await user.findOne({email})
+export const login = async (req, res) => {
+    const { email, password } = req.body;
 
-    if(!user) {
-        return res.status(400).json({message:"invalid credentials"})
+    try {
+        const user = await User.findOne({ email });  // ✅ Fixed incorrect reference
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid credentials" });
+        }
+
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+        if (!isPasswordCorrect) {
+            return res.status(400).json({ message: "Invalid credentials" });
+        }
+
+        generateToken(user._id, res);
+
+        res.status(200).json({
+            _id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            profilePic: user.profilePic,
+        });
+
+    } catch (error) {
+        console.error("Error in login controller:", error.message);
+        res.status(500).json({ message: "Internal server error" });
     }
-
-    const isPasswordCorrect = await bcrypt.compare(password, user.password);
-    if(!isPasswordCorrect) {
-        return res.status(400).json({message:"invalid credentials"})
-    }
-    generateToken(user._id,res)
-
-    res.status(200).json({ //send user data back to client
-         _id:user._id,
-         fullName:user.fullName,
-         email: user.email,
-         profilePic: user.profilePic,
-    })
-   }catch (error) {
-    console.log("error in login controller",error.message);
-    res.status(500).json({message:"internal error"})
-   }
 };
 
-export const logout = async(req, res) => {
-   try{
-      res.cookie("jwt", "",{maxAge:0})
-      res.status(200).json({message:"logged out successfully"});
-   }catch(error){
-      console.log("error in logout controller",error.message);
-   }
+export const logout = async (req, res) => {
+    try {
+        res.cookie("jwt", "", { maxAge: 0 }); // ✅ Correct
+
+        res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+        console.error("Error in logout controller:", error.message);
+        res.status(500).json({ message: "Internal server error" });  
+    }
 };
